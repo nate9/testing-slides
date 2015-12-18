@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+    <title>Unit Tests</title>
+
+    <meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+    <meta name="author" content="Hakim El Hattab">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+    <!-- Code syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/monokai-sublime.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="reveal">
+
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+        <section data-markdown 
+                 data-separator="^\n\n" 
+                 data-separator-vertical="^\n" 
+                 data-charset="iso-8859-15">
+          <script type="text/template">#Unit Tests
+
+
+##Unit Tests are production code
+> As of version 3.9.0, the SQLite library consists of approximately 112.8 KSLOC of C code. (KSLOC means thousands of "Source Lines Of Code" or, in other words, lines of code excluding blank lines and comments.) By comparison, the project has 811 times as much test code and test scripts - 91555.1 KSLOC. - https://www.sqlite.org/testing.html
+
+Test code should be taken seriously
+
+
+##Unit Tests are documentation
+* Everything in Go has a test case, which you can look at to understand how to use the package 
+
+```golang
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+  
+package strings_test
+  
+import (
+  "reflect"
+  . "strings"
+  "testing"
+)
+  
+func TestFinderNext(t *testing.T) {
+  testCases := []struct {
+    pat, text string
+    index     int
+  }{
+    {"", "", 0},
+    {"", "abc", 0},
+    {"abc", "", -1},
+    {"abc", "abc", 0},
+    {"d", "abcdefg", 3},
+    {"nan", "banana", 2},
+    {"pan", "anpanman", 2},
+    {"nnaaman", "anpanmanam", -1},
+    {"abcd", "abc", -1},
+    {"abcd", "bcd", -1},
+    {"bcd", "abcd", 1},
+    {"abc", "acca", -1},
+    {"aa", "aaa", 0},
+    {"baa", "aaaaa", -1},
+    {"at that", "which finally halts.  at that point", 22},
+  }
+  
+  for _, tc := range testCases {
+    got := StringFind(tc.pat, tc.text)
+    want := tc.index
+    if got != want {
+      t.Errorf("stringFind(%q, %q) got %d, want %d\n", tc.pat, tc.text, got, want)
+    }
+  }
+}
+```
+
+
+##Scope of Tests
+* Unit tests should create a mini universe in which the SUT should pass
+ 
+![image](img/dot-depth-of-test-shallow.png)
+
+
+## DAMP vs DRY
+* **DAMP** is Descriptive and Meaningful Phrases
+* Essentially means that code readibility and code expressiveness is more important than abstraction
+* In a test suite, a lot of input variables are repeated, with slight changes for each test case
+* It's okay to repeat yourself, but do think about if the test case is becoming too long
+* We may refactor some of the helper methods, the code might be 'neater', but the next person who reads the test case will not get it
+
+###Example DRY
+```groovy
+def test_base_case() {
+  given: "An account with money"
+    Account account = getNewAccountWithMoney()
+  when: "We make a withdrawal"
+    account.withdraw(TEST_AMOUNT); //What is this TEST_AMOUNT?
+  then: "The amount should be withdrawn"
+    account.amount() == 0
+}
+  
+def test_negative_case() { //What does this mean? Are we testing when we are withdrawing a negative number?
+  given: "An account with money"
+    Account account = getNewAccountWithMoney()
+  when: "We make an invalid withdrawal"
+    account.withdraw(51); //WHY?
+  then: "The amount should not be withdrawn"
+    thrown(InvalidWithdrawalAmountException)
+}
+  
+def Account getNewAccountWithMoney() {
+  return new Account(TEST_AMOUNT);
+}
+```
+
+###Example DAMP
+```groovy
+def itShouldWithdrawIfIHaveEnoughMoney() {
+  given: "An account with money a starting amount of 50"
+    def startingAmount = 50;
+    Account account = new Account(startingAmount)
+  when: "We make a withdrawal of 10"
+    account.withdraw(10);
+  then: "The amount should be withdrawn and the account should contain 40 dollars"
+    account.amount() == 40
+}
+  
+def itShouldNotWithdrawIDontHaveMoney() {
+  given: "An account with money a starting amount of 50"
+    def startingAmount = 50;
+    Account account = new Account(startingAmount)
+  when: "We make an invalid withdrawal of 51 dollars"
+    account.withdraw(51);
+  then: "The amount should not be withdrawn"
+    thrown(InvalidWithdrawalAmountException)
+}
+```
+
+
+#Tips to keep testing code DAMP
+
+##Use table-based testing
+In Spock:
+```groovy
+def "The amount should be the initial amount minus the withdrawal"() {
+  given: "An account with a starting amount"
+    Account account = new Account(startingAmount)
+  when: "We withdraw the amount"
+    account.withdraw(amountWithdrawn);
+  then: "The amount should be withdrawn"
+    account.amount() == expectedAmount
+  where:
+    startingAmount | amountWithdrawn || expectedAmount
+    50             | 10              || 40
+    50             | 50              || 0
+    50             | 0               || 50
+    0              | 0               || 0
+}
+```
+
+##Anti-Pattern: Test Object Mother
+* A single class with a bunch of static methods that test mock objects
+* Is good, until you realize that you need different test data objects with different test objects
+* To someone else, they won't know any of the context 
+```Java
+public class TestDataObjectUtils {
+    
+  public static Account getTestAccount() {
+    return new Account(0);
+  }
+  
+  public static Account getTestAccountWithMoney() {
+    return new Account(50); //Still quite unkown where this comes from
+  }
+}
+```
+
+##Use a Test Data Builder
+* Like a Builder, but sets default values for values that we may not necessarily care about
+* We can override the values when we care about them 
+```groovy
+public class TestAccountBuilder {
+    private int amount = 0;
+    
+    public TestAccountBuilder() {
+    }
+    
+    public TestAccountBuilder withAmount(int amount) {
+      this.amount = amount;
+      return this;
+    }
+  
+    public Account build() {
+      return new Account(amount);
+    }
+}
+```
+
+##Use A SUTFactory
+* Similar to the Test Data Builder above, used to create a SUT for the test cases
+
+##Inheritance should be used sparingly
+* Composition is a better model
+
+##Keeping Equality Assertions DAMP
+* Implement .equals() for data objects, or use a comparator
+* Use the resemblence pattern if you cannot use the equals(), example, GUIDs
+* Likeness pattern
+
+##The Problem
+```groovy
+def "ShoppingCartDiscounter should add a discount"() {
+  given: "A shopping cart"
+    ShoppingCart cart = new ShoppingCart(
+      new ShopItem("apple", 10),
+      new ShopItem("orange", 15),
+      new ShopItem("pear", 30)
+      );
+  
+  when: "A discount is applied"
+    Discounter discounter = new Discounter(10);
+    discounter.apply(cart);
+  
+  then: "It should add the discount to the cart"
+    List<ShopItem> shopItems = cart.getAllItems();
+    def apple = shopItems.get(0);
+    apple.getName() == "apple";
+    apple.getPrice() == 10;
+  
+    def orange = shopItems.get(1);
+    //etc...
+  
+    def discount = shopItems.get(3);
+    discount.getName() == "discount";
+    discount.getPrice() == -10;
+}
+```
+
+##Using .equals()
+```groovy
+def "ShoppingCartDiscounter should add a discount"() {
+  given: "A shopping cart"
+    ShoppingCart cart = new ShoppingCart(
+      new ShopItem("apple", 10),
+      new ShopItem("orange", 15),
+      new ShopItem("pear", 30)
+      );
+  
+  when: "A discount is applied"
+    Discounter discounter = new Discounter(10);
+    discounter.apply(cart);
+  
+  then: "It should add the discount to the cart"
+    ShoppingCart discountCart = new ShoppingCart(
+      new ShopItem("apple", 10),
+      new ShopItem("orange", 15),
+      new ShopItem("pear", 30),
+      new Discount(10);
+      );
+    cart.equals(discountCart);
+}
+```
+
+##Models for Equality
+* Decide something that makes sense
+* Domain-Driven Design
+* Entities/Persistent data is equal if they have the same id
+* Value Objects are equal if the values are the same
+* Services use default language implementation
+
+
+##Other tips and tricks
+
+##Injecting a class to make the behaviour more testable
+* Eg. Wrap some of the system calls in a class
+* Timer.now(), replace with a Timer.getTime() method, with a protected setTime() method
+
+##How do you test a private method?
+* Make it public!
+* Or make it protected
+* Not recommended using reflection
+
+
+##When to use and not use Mocks
+* Use integration testing for Database testing
+* Mock out real HTTP/Over the wire calls, test the actual client separately
+* Inject in a in-memory file system
+
+
+##Anti-Patterns
+* Something that you see commonly but is not actually a good design pattern
+
+###The Liar, aka The Volkswagen
+An entire unit test that passes all of the test cases it has and appears valid, but upon closer inspection it is discovered that it doesn’t really test the intended target at all. 
+
+###Excessive Setup
+* Lots of lines of code to run a simple basic test
+* Perhaps means that the class under test has too many dependencies
+
+###The Giant
+* Gigantic test case
+* Refactor with table-based testing if possible, and other techniques
+
+###The Mockery
+* Too many mocks, meaning that what we are testing isn't even what we meant to test
+
+###The Inspector
+A test that doesn't actually test the SUT, but inspects all the other classes it interacts with
+
+###The Local Hero
+A test that is dependent on something specific, such as a file being present or your local environment
+
+###The Nitpicker
+A test that asserts and compares all the data when it only really cares about one thing.
+
+###The Free Ride
+Rather than write a new test that asserts a new piece of functionality, we add a new assert to an existing test case
+
+###The Happy Path
+A Unit Test that only goes through the happy day scenarios but not the negative edge cases
+
+###The Chain Gang
+Tests that are required to be run in order
+          </script>
+        </section>
+      </div>
+
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+
+        transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/highlight/highlight.js', async: true, condition: function() { return true; }, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/zoom-js/zoom.js', async: true },
+          { src: 'plugin/notes/notes.js', async: true }
+        ]
+      });
+
+    </script>
+
+  </body>
+</html>

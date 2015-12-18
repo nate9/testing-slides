@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>TDD</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/monokai-sublime.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section data-markdown 
+								 data-separator="^\n\n" 
+								 data-separator-vertical="^\n" 
+								 data-charset="iso-8859-15">
+			    <script type="text/template">#TDD Workshop
+* December 2015
+* Nathaniel Lai
+
+
+## What is Agile
+- Agile is *not* about having standups
+- Agile is *not* about having sprints
+- Agile is *not* even about getting *stuff* done
+- Agile is basically two key principles: **Inspect** and **Adapt**
+
+
+##How TDD fits into Agile
+* We have the concept of critical distance
+* When you show your work to another developer, that person will view things differently from you.
+* When you show your work to a tester or QA, he/she will view things differently from you.
+* When you show your work to the BA or the Product Manager, that person will view things differently from you.
+* When you release your work to the customer, they will view things differently from you.
+
+###TDD is a form of self-introspection or self-reflection. You are criticizing your own code
+
+
+##TDD is not a silver bullet
+* The end goal is better testibility, better readibility, and better specification of the behaviour of the code we write.
+* Does not mean we immediately ignore other principles such as SOLID, DRY, or common sense.
+* There are some things where TDD does not make sense
+> Absorb what is useful, discard what is useless, and add what is uniquely your own. - Bruce Lee
+
+
+##TDD is *Hard*
+* It takes 10,000 hours for anybody to master anything
+* TDD is a part of mastering the craft of developing
+* Developing is more than just programming and more than just coding
+
+
+##Code Coverage
+* Not everything
+* It's not about covering everything, it's about *attempting* to cover everything.
+* Code coverage is the metric that can be covered, code readibility and code testibility cannot be measured.
+
+
+##'With TDD, we are working *literally* backwards'
+* In software, the design is actually really closely tied with the implementation
+* With tests, we design the software by a specification before attempting the implementation
+* Unit tests are production code. They may not be fun to write, but they are essential to good software
+
+
+##'We don't have enough time to do TDD'
+* Chicken and the Egg problem
+* We don't have time because we are fixing bugs for code which either is legacy code, undocumented, or is really hard to read.
+
+
+##'Why not just write the unit test code afterwards'
+* With TDD we are testing code we should be writing
+* With CDT we are testing code we have already written
+* Our biases *shape* us
+* We don't account for some test cases that we may not have thought about.
+
+##Example Code
+```groovy
+def operateOn(int a, int b) {
+	if(a > b) {
+		return a - b;
+	} else {
+		return b - a;
+	}
+}
+```
+
+##Example Test case
+```groovy
+def whenAIsGreaterThanB() {
+	def a = 5;
+	def b = 3;
+	assert operateOn(a, b) == 2;
+}
+def whenBIsGreaterThanA() {
+	def a = 3;
+	def b = 7;
+	assert operateOn(a, b) == 4;
+}
+```
+
+* What if there is a case for ```a == b``` that we haven't accounted for?
+* Should we throw an exception?
+* What about when either a or b is 0, or negative?
+* The code is already written and we are taking the code as the assumed correct behaviour
+
+```groovy
+def whenAisEqualToB() {
+	def a = 2
+	def b = 2
+	assert operateOn(a, b) == 0
+}
+```
+What is the correct behaviour? We're assuming that it should return 0
+
+
+##Red, Green, Refactor
+* First write a failing test
+* Then write the minimum amount of code to pass that test
+* Then refactor the code
+			    </script>
+				</section>
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return true; }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
