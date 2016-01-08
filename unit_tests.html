@@ -225,6 +225,43 @@ public class TestAccountBuilder {
 
 ##Use A SUTFactory
 * Similar to the Test Data Builder above, used to create a SUT for the test cases
+```groovy
+public class SUTFactory {
+    private DependencyA depA;
+    private DependencyB depB;
+    
+    public SUTFactory() {
+      this.depA = new DependencyAImpl();
+      this.depB = new DependencyBImpl();
+    }
+    
+    public SUTFactory withDependencyA(DependencyA depA) {
+      this.depA = depA;
+      return this;
+    }
+    
+    public SUTFactory withDependencyB(DependencyB depB) {
+      this.depB = depB;
+      return this;
+    }
+    
+    public SUT build() {
+      return new SUT(depA, depB);
+    }
+}
+```
+
+Test Code:
+```groovy
+def setup() {
+  DependencyA depA = Mock();
+  DependencyB depB = Mock();
+  def sut = new SUTFactory()
+            .withDependencyA(depA)
+            .withDependencyB(depB)
+            .build();
+}
+```
 
 ##Inheritance should be used sparingly
 * Composition is a better model
