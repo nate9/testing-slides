@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+    <title>In-Memory Test Database</title>
+
+    <meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+    <meta name="author" content="Hakim El Hattab">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+    <!-- Code syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/monokai-sublime.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="reveal">
+
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+        <section data-markdown 
+                 data-separator="^\n\n" 
+                 data-separator-vertical="^\n" 
+                 data-charset="iso-8859-15">
+          <script type="text/template">#In Memory Test Databases
+
+##Reasons
+* Run automated tests on any DAO (Data Access Object) classes that we have
+* Much easier than setting up a database on your own
+* Test SQL Syntax for certain specific systems (Derby/DB2)
+
+
+##Well known in-memory embedded test databases
+* H2
+* hsqldb
+* derby
+
+##What about NoSQL?
+* Unofficial development for embedded MongoDB
+* Can also use a docker container
+
+
+##Setting up Test Data
+* Liquibase
+* DBUnit
+* Manually Insert Data
+
+
+##DBUnit
+Create an XML File, and insert it into the database
+```xml
+<dataset>
+  <MENU food_item="Steak" description="Char-grilled steak" price="20.00"/>
+  <MENU food_item="Spagehetti" description="Spagehetti Carbonara" price="11.00"/>
+  <MENU food_item="Pizza" description="Hawaiian" price="10.50"/>
+</dataset>
+```
+
+##DBUnit
+```java
+//java.sql.Connection
+Connection conn = DriverManager.getConnection(.....);
+IDatabaseConnection dbUnitConn = new DatabaseConnection(conn);
+File file = new File("path/to/dataset.xml");
+IDataSet dataset = new FlatXmlDataSetBuilder().build(file);
+DatabaseOperation.INSERT.execute(dbUnitConn, dataset);
+```
+
+
+##Liquibase
+* Liquibase is a bit more flexible
+* You can run other SQL command and migrations as well
+* Load test data/create schema dependent on the type of database you are using
+* Define data in a csv file format, then run an insertion
+
+```xml
+<changeSet id="load-test-data" author="nathaniel.lai" context="test-foodmenuitems" dbms="h2,mysql">
+    <loadData
+        encoding="UTF-8"
+        file="test_data.csv"
+        tableName="food_item"
+        >
+        <column name="name" type="string"/>
+        <column name="description" type="string"/>
+        <column name="price" type="numeric"/>
+    </loadData>
+</changeSet>
+```
+
+##How to test a database?
+* Same rules apply
+* Arrange, Act, Assert
+
+FoodItemDao
+```java
+public interface FoodItemDao {
+  public void addFoodItem(FoodItem foodItem);
+  public void deleteFoodItem(String name);
+  public FoodItem getFoodItem(String name);
+}
+```
+
+```java
+FoodItemDao foodItemDao = ....; //Some setup method here
+  
+@Test
+public itShouldGetAFoodItem() {
+  //Given: Inserted database food items via liquibase
+  Liquibase testDataLoader = new Liquibase("test_migrations_master.xml", new ClassLoaderResourceAccessor(), database);
+  testDataLoader.update("test-foodmenuitems");
+  //When: We get a food item
+  FoodItem foodItem = foodItemDao.getFoodItem("steak");
+  //Then: It should get the food item
+  assertThat(foodItem.name).isEqualTo("steak");
+  assertThat(foodItem.price).isEqualTo(20.00);
+}
+```
+
+```java
+@Test
+public itShouldAddAFoodItem() {
+  //Given Food Item to add
+  FoodItem foodItem = new FoodItem("lasagne", "A heart attack in the shape of a cube", 15.00);
+  //When we add the food item
+  foodItemDao.addFoodItem(foodItem);
+  //Then the food item should exist
+  FoodItem addedItem = foodItemDao.getFoodItem("lasagne");
+  assertThat(addedItem).isEqualTo(foodItem); //Equality Check!
+}
+```
+          </script>
+        </section>
+      </div>
+
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+
+        transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/highlight/highlight.js', async: true, condition: function() { return true; }, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/zoom-js/zoom.js', async: true },
+          { src: 'plugin/notes/notes.js', async: true }
+        ]
+      });
+
+    </script>
+
+  </body>
+</html>
