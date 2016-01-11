@@ -268,7 +268,7 @@ def setup() {
 
 ##Keeping Equality Assertions DAMP
 * Implement .equals() for data objects, or use a comparator
-* Use the resemblence pattern if you cannot use the equals(), example, GUIDs
+* Use the Resemblance pattern if you cannot use the equals(), example, GUIDs
 * Likeness pattern
 
 ##The Problem
@@ -332,6 +332,44 @@ def "ShoppingCartDiscounter should add a discount"() {
 * Value Objects are equal if the values are the same
 * Services use default language implementation
 
+###Resemblance
+```groovy
+public class RequestReservationCommand {
+  public RequestReservationCommand(
+    Date date,
+    String email,
+    String name,
+    int quantity)
+  {
+    this.date = date;
+    this.email = email;
+    this.name = name;
+    this.quantity = quantity;
+    this.id = getNewGUID(); //So we have a GUID for this object
+  }
+}
+```
+
+###Resemblance
+We need to either implement a helper equals method or use Resemblance pattern
+```groovy
+public class RequestReservationCommandResemblance extends RequestReservationCommand {
+  @Override
+  public boolean equals(Object obj) {
+    RequestReservationCommand other;
+    if(obj instanceof RequestReservationCommand) {
+      other = (RequestReservationCommand) obj;
+    }
+    if(other != null) {
+      return this.Date.equals(other.Date)
+        && this.email == other.email
+        && this.name == other.name
+        && this.quantity == other.quantity;
+    }
+    return false;
+  }
+}
+```
 
 ##Other tips and tricks
 
