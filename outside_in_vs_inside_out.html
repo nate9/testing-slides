@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+    <title>Outside In vs Inside Out TDD style</title>
+
+    <meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+    <meta name="author" content="Hakim El Hattab">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+    <!-- Code syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/monokai-sublime.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="reveal">
+
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+        <section data-markdown 
+                 data-separator="^\n\n" 
+                 data-separator-vertical="^\n" 
+                 data-charset="iso-8859-15">
+          <script type="text/template">#Outside-In vs Inside-Out
+Also known as Classic vs Mockist
+
+
+##Classic TDD
+* Also known as 'Detroit School'
+* Approach described by Kent Beck in book 'Test-driven Development By Example'
+
+
+##Mockist TDD
+* Also known as 'London School'
+* Approach described by Nat Pryce and Steve Freeman in the book 'Growing Object Oriented Software Guided By Tests'
+* Approach popularized due to demand for Enterprise software with lots of collaborations and messaging between groups
+
+
+##Classic TDD
+* State-Based testing
+* Uses the 'triangulation' technique
+* Algorithmic in emphasis
+* Uses fewer mocks
+* Objects tend to 'Ask' instead of 'Tell'
+* In order to extract the state of the system, you have to expose certain internals
+
+##Example Triangulated Test
+Roman numerals example
+```java
+@Test
+public void itShouldReturnRomanNumeralOne() {
+  //When we convert the roman numeral of one
+  Roman roman = new Roman(1);
+  //Then it should convert it to "I"
+  assertThat(roman.toString()).isEqualTo("I");
+  //The naive solution would just be to return a hardcoded 'I'
+}
+```
+
+```java
+@Test
+public void itShouldReturnRomanNumeralTwo() {
+  //When we convert the roman numeral of two
+  Roman roman = new Roman(2);
+  //Then it should convert it to "II"
+  assertThat(roman.toString()).isEqualTo("II");
+  //The naive solution would just to have an if/else
+}
+```
+
+```java
+@Test
+public void itShouldReturnRomanNumeralThree() {
+  //When we convert the roman numeral of two
+  Roman roman = new Roman(3);
+  //Then it should convert it to "III"
+  assertThat(roman.toString()).isEqualTo("III");
+  //The naive solution would just to append 'I's for each integer
+}
+```
+
+##Example
+More exposed API, less encapsulation
+```java
+public class OrderStateTester {
+  private static String TALISKER = "Talisker";
+  private static String HIGHLAND_PARK = "Highland Park";
+  private Warehouse warehouse = new WarehouseImpl();
+  
+  protected void setUp() throws Exception {
+    warehouse.add(TALISKER, 50);
+    warehouse.add(HIGHLAND_PARK, 25);
+  }
+  
+  @Test
+  public void testOrderIsFilledIfEnoughInWarehouse() {
+    Order order = new Order(TALISKER, 50);
+    order.fill(warehouse);
+    assertTrue(order.isFilled());
+    assertEquals(0, warehouse.getInventory(TALISKER));
+  }
+  
+  @Test
+  public void testOrderDoesNotRemoveIfNotEnough() {
+    Order order = new Order(TALISKER, 51);
+    order.fill(warehouse);
+    assertFalse(order.isFilled());
+    assertEquals(50, warehouse.getInventory(TALISKER));
+  }
+```
+
+##Inside-Out TDD
+* Design of the software comes from the ground up
+* No idea of what the software or the classes look like
+* Design emerges from the code, no design is done upfront at all
+
+
+##Mockist TDD
+* Emphasises roles, responsibilities, and collaborations
+* Behavioural-based, not state-based
+* Encourages Tell, don't ask
+
+##Example: Less Exposed API
+```java
+public class OrderInteractionTester {
+  private static String TALISKER = "Talisker";
+  
+  @Test
+  public void testFillingRemovesInventoryIfInStock() {
+    //setup - data
+    Order order = new Order(TALISKER, 50);
+    Mock warehouseMock = new Mock(Warehouse.class);
+    
+    //setup - expectations
+    warehouseMock.expects(once()).method("hasInventory")
+      .with(eq(TALISKER),eq(50))
+      .will(returnValue(true));
+    warehouseMock.expects(once()).method("remove")
+      .with(eq(TALISKER), eq(50))
+      .after("hasInventory");
+  
+    //exercise
+    order.fill((Warehouse) warehouseMock.proxy());
+    
+    //verify
+    warehouseMock.verify();
+    assertTrue(order.isFilled());
+  }
+  
+  @Test
+  public void testFillingDoesNotRemoveIfNotEnoughInStock() {
+    Order order = new Order(TALISKER, 51);    
+    Mock warehouse = mock(Warehouse.class);
+    
+    warehouse.expects(once()).method("hasInventory")
+      .withAnyArguments()
+      .will(returnValue(false));
+  
+    order.fill((Warehouse) warehouse.proxy());
+  
+    assertFalse(order.isFilled());
+  }
+```
+
+##Outside-In TDD
+* You have some idea of what the system looks like, perhaps some of the integration already exists, and you are designing with a contract in mind.
+* You start with the external system (Outside) and work towards the internals
+* Usually start with a walking skeleton or an acceptance test
+
+
+##Conclusion
+* Ultimately, our goals are reliable, readable and cleaner code and good internal design
+* Use whichever school of thought works for you, but understand both
+          </script>
+        </section>
+      </div>
+
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+
+        transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/highlight/highlight.js', async: true, condition: function() { return true; }, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/zoom-js/zoom.js', async: true },
+          { src: 'plugin/notes/notes.js', async: true }
+        ]
+      });
+
+    </script>
+
+  </body>
+</html>
